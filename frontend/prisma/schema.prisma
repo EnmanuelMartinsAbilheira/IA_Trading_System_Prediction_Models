@@ -1,0 +1,117 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  simulations Simulation[]
+  trades      Trade[]
+}
+
+model Post {
+  id        String   @id @default(cuid())
+  title     String
+  content   String?
+  published Boolean  @default(false)
+  authorId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PredictionModel {
+  id          String   @id @default(cuid())
+  name        String
+  type        String   // 'LSTM', 'Transformer', 'Ensemble', etc.
+  version     String
+  accuracy    Float
+  status      String   // 'active', 'training', 'inactive'
+  description String?
+  parameters  Json?    // Model parameters and configuration
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  predictions Prediction[]
+}
+
+model TradingData {
+  id        String   @id @default(cuid())
+  symbol    String
+  timestamp DateTime @default(now())
+  open      Float
+  high      Float
+  low       Float
+  close     Float
+  volume    Int
+  interval  String   // '1m', '5m', '1h', '1d', etc.
+
+  predictions Prediction[]
+}
+
+model Prediction {
+  id              String   @id @default(cuid())
+  modelId         String
+  tradingDataId   String
+  prediction      Float    // Predicted price
+  confidence      Float    // Confidence score (0-1)
+  direction       String   // 'up', 'down', 'neutral'
+  timeframe       String   // Time horizon for prediction
+  actualPrice     Float?   // Actual price when available
+  accuracy        Float?   // Actual accuracy when available
+  createdAt       DateTime @default(now())
+
+  model         PredictionModel @relation(fields: [modelId], references: [id])
+  tradingData   TradingData     @relation(fields: [tradingDataId], references: [id])
+}
+
+model Trade {
+  id          String   @id @default(cuid())
+  userId      String?
+  symbol      String
+  type        String   // 'buy', 'sell'
+  quantity    Float
+  price       Float
+  timestamp   DateTime @default(now())
+  status      String   // 'pending', 'executed', 'cancelled'
+  profitLoss  Float?
+  strategy    String?  // Strategy used
+  predictionId String? // Associated prediction if any
+
+  user        User?           @relation(fields: [userId], references: [id])
+  simulation  Simulation?     @relation(fields: [simulationId], references: [id])
+  simulationId String?
+}
+
+model Simulation {
+  id          String   @id @default(cuid())
+  userId      String?
+  name        String
+  status      String   // 'running', 'paused', 'completed', 'stopped'
+  startTime   DateTime @default(now())
+  endTime     DateTime?
+  initialBalance Float
+  currentBalance Float
+  totalTrades Int      @default(0)
+  winRate     Float?
+  profitLoss  Float?
+  strategy    String?  // Strategy configuration
+  parameters  Json?    // Simulation parameters
+
+  user        User?    @relation(fields: [userId], references: [id])
+  trades      Trade[]
+}
