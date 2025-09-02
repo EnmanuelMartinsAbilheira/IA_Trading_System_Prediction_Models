@@ -1,57 +1,48 @@
-# init_db.py
-import os
-import sys
+# init_sqlite.py - Inicialización de base de datos SQLite
 from sqlalchemy import create_engine, Column, Integer, String, DateTime, Numeric, ForeignKey, Boolean, JSON, UniqueConstraint
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime
+import os
 
-def init_database():
-    """Inicializar la base de datos con tablas y datos iniciales"""
-    print("🏗️  Inicializando Base de Datos del Sistema de Trading")
-    print("=" * 60)
+# Configuración de la base de datos SQLite
+DATABASE_URL = "sqlite:///./trading.db"
+engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
+
+# Modelos de la base de datos
+class User(Base):
+    __tablename__ = "usuarios"
     
-    # Configuración de la base de datos
-    DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@localhost:5432/trading_db")
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String(50), unique=True, index=True)
+    password_hash = Column(String(255))
+    email = Column(String(100), unique=True, index=True)
+    fecha_creacion = Column(DateTime, default=datetime.utcnow)
+
+class Asset(Base):
+    __tablename__ = "activos"
     
-    print(f"📡 Conectando a: {DATABASE_URL}")
+    id = Column(Integer, primary_key=True, index=True)
+    simbolo = Column(String(20), unique=True, index=True)
+    nombre = Column(String(100))
+    tipo = Column(String(20))
+    mercado = Column(String(50))
+
+def init_sqlite_db():
+    """Inicializar la base de datos SQLite"""
+    print("🚀 Inicializando Base de Datos SQLite")
+    print("=" * 50)
     
     try:
-        # Crear engine
-        engine = create_engine(DATABASE_URL)
-        print("✅ Engine creado exitosamente")
-        
-        # Crear sesión
-        Session = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-        session = Session()
-        print("✅ Sesión creada exitosamente")
-        
-        # Crear modelos base
-        Base = declarative_base()
-        
-        # Definir modelos
-        class User(Base):
-            __tablename__ = "usuarios"
-            
-            id = Column(Integer, primary_key=True, index=True)
-            username = Column(String(50), unique=True, index=True)
-            password_hash = Column(String(255))
-            email = Column(String(100), unique=True, index=True)
-            fecha_creacion = Column(DateTime, default=datetime.utcnow)
-
-        class Asset(Base):
-            __tablename__ = "activos"
-            
-            id = Column(Integer, primary_key=True, index=True)
-            simbolo = Column(String(20), unique=True, index=True)
-            nombre = Column(String(100))
-            tipo = Column(String(20))
-            mercado = Column(String(50))
-        
-        # Crear tablas
-        print("\n📋 Creando tablas...")
+        # Crear las tablas
+        print("📋 Creando tablas...")
         Base.metadata.create_all(bind=engine)
         print("✅ Tablas creadas exitosamente")
+        
+        # Crear sesión
+        session = SessionLocal()
         
         # Agregar activos iniciales
         print("\n💰 Agregando activos iniciales...")
@@ -90,26 +81,29 @@ def init_database():
         session.commit()
         session.close()
         
-        print(f"\n🎉 ¡Base de datos inicializada exitosamente!")
+        print(f"\n🎉 ¡Base de datos SQLite inicializada exitosamente!")
         print(f"📊 Resumen:")
-        print(f"  - {assets_added} activos agregados")
-        print(f"  - Tablas creadas: usuarios, activos")
-        print(f"  - Usuario de prueba: test")
+        print(f"   - {assets_added} activos agregados")
+        print(f"   - Tablas creadas: usuarios, activos, y más")
+        print(f"   - Usuario de prueba: test")
+        print(f"   - Archivo de base de datos: trading.db")
         
         return True
         
     except Exception as e:
-        print(f"\n❌ Error al inicializar la base de datos: {e}")
-        print("\n💡 Soluciones:")
-        print("1. Asegúrate de que PostgreSQL esté corriendo")
-        print("2. Ejecuta: python test_db_connection.py")
-        print("3. Si la conexión falla, ejecuta: python setup_postgresql.py")
+        print(f"❌ Error durante la inicialización: {e}")
         return False
 
 def main():
-    if init_database():
-        print("\n🚀 ¡Listo para iniciar el backend!")
-        print("Ejecuta: python main.py")
+    print("🏗️  Inicializador de Base de Datos SQLite")
+    print("=" * 50)
+    
+    if init_sqlite_db():
+        print("\n🚀 ¡Listo para iniciar el servidor!")
+        print("Ejecuta: python main_sqlite.py")
+        print("\n🌐 Accede a:")
+        print("  - Backend: http://localhost:8000")
+        print("  - Documentación: http://localhost:8000/docs")
     else:
         print("\n❌ No se pudo inicializar la base de datos")
 
